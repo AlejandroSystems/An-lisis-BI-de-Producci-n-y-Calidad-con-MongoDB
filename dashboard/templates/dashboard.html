@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard BI - MongoDB</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- Librería Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+    <header class="header">
+        <div>
+            <h1>Dashboard BI - Producción y Calidad</h1>
+            <p>Proyecto NoSQL con MongoDB, Python, Flask y análisis económico de merma.</p>
+        </div>
+        <div class="badge">BI + NoSQL</div>
+    </header>
+
+    <nav class="dashboard-nav">
+        <a href="#kpis">KPIs</a>
+        <a href="#lectura-ejecutiva">Lectura ejecutiva</a>
+        <a href="#economico">Análisis económico</a>
+        <a href="#calidad">Calidad</a>
+        <a href="#rechazos">Rechazos críticos</a>
+        <a href="#mejora">Mejora</a>
+        <a href="#arquitectura">Arquitectura</a>
+    </nav>
+
+    <section id="kpis" class="section-title">
+        <h2>Indicadores ejecutivos</h2>
+        <p>
+            Resumen general de los registros procesados desde MongoDB. Estos indicadores permiten evaluar
+            producción, merma, pérdida estimada y nivel de rechazo del proceso operativo.
+        </p>
+    </section>
+
+    <section class="kpi-grid">
+        <div class="kpi-card">
+            <span>Registros activos</span>
+            <h2>{{ total_registros }}</h2>
+            <p>Cantidad total de lotes activos analizados desde la colección de MongoDB.</p>
+        </div>
+
+        <div class="kpi-card">
+            <span>Producción total</span>
+            <h2>{{ produccion_total }}</h2>
+            <p>Suma total de kilogramos producidos en todos los registros operativos.</p>
+        </div>
+
+        <div class="kpi-card">
+            <span>Merma total</span>
+            <h2>{{ merma_total }}</h2>
+            <p>Kilogramos perdidos durante el proceso productivo.</p>
+        </div>
+
+        <div class="kpi-card danger">
+            <span>Pérdida estimada</span>
+            <h2>{{ perdida_total }}</h2>
+            <p>Valor económico aproximado de la merma según el precio por kg de cada producto.</p>
+        </div>
+
+        <div class="kpi-card warning">
+            <span>% Merma general</span>
+            <h2>{{ porcentaje_merma }}</h2>
+            <p>Relación entre la merma total y la producción total.</p>
+        </div>
+
+        <div class="kpi-card danger">
+            <span>Tasa de rechazo</span>
+            <h2>{{ tasa_rechazo }}</h2>
+            <p>Porcentaje de lotes clasificados como rechazados respecto al total analizado.</p>
+        </div>
+    </section>
+
+    <section id="lectura-ejecutiva" class="executive-card">
+        <h2>Lectura ejecutiva del análisis</h2>
+        <p>
+            El proceso presenta una tasa de rechazo de <strong>{{ tasa_rechazo }}</strong> y una pérdida económica
+            estimada de <strong>{{ perdida_total }}</strong>. Esto evidencia una oportunidad de mejora en el control
+            operativo, especialmente en los productos, áreas y turnos con mayor impacto económico.
+        </p>
+        <p>
+            La prioridad de intervención debe centrarse en reducir la merma, controlar los lotes con riesgo alto
+            y aplicar inspecciones preventivas antes del despacho o venta.
+        </p>
+    </section>
+
+    <section id="calidad" class="section-title">
+        <h2>Control de calidad</h2>
+        <p>
+            Distribución de los lotes según su estado de calidad: aprobado, observado o rechazado.
+            Esta sección ayuda a identificar el nivel de riesgo operativo del proceso.
+        </p>
+    </section>
+
+    <section class="summary-grid">
+        <div class="summary-card approved">
+            <h3>Aprobados</h3>
+            <p>{{ total_aprobados }}</p>
+            <span>Lotes conformes para continuidad operativa.</span>
+        </div>
+
+        <div class="summary-card observed">
+            <h3>Observados</h3>
+            <p>{{ total_observados }}</p>
+            <span>Lotes que requieren revisión o seguimiento.</span>
+        </div>
+
+        <div class="summary-card rejected">
+            <h3>Rechazados</h3>
+            <p>{{ total_rechazados }}</p>
+            <span>Lotes con mayor impacto en pérdida y control de calidad.</span>
+        </div>
+    </section>
+
+    <section id="economico" class="section-title">
+        <h2>Análisis económico</h2>
+        <p>
+            Los gráficos muestran la pérdida económica estimada en función de la merma registrada
+            y el precio por kilogramo definido en la hoja PRECIOS_KG.
+        </p>
+    </section>
+
+    <section class="charts-grid">
+        <div class="chart-card">
+            <h3>Pérdida económica por producto</h3>
+            <p class="chart-description">
+                Permite identificar qué productos generan mayor impacto económico por merma.
+            </p>
+            <div class="chart-container">
+                <canvas id="chartProductos"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Pérdida económica por área</h3>
+            <p class="chart-description">
+                Muestra las áreas donde la merma valorizada representa mayor pérdida.
+            </p>
+            <div class="chart-container">
+                <canvas id="chartAreas"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Calidad por estado</h3>
+            <p class="chart-description">
+                Distribución visual de registros aprobados, observados y rechazados.
+            </p>
+            <div class="chart-container small">
+                <canvas id="chartCalidad"></canvas>
+            </div>
+            <div class="mini-summary">
+                <span>Aprobados: <strong>{{ total_aprobados }}</strong></span>
+                <span>Observados: <strong>{{ total_observados }}</strong></span>
+                <span>Rechazados: <strong>{{ total_rechazados }}</strong></span>
+            </div>
+        </div>
+
+        <div class="chart-card">
+            <h3>Pérdida económica por turno</h3>
+            <p class="chart-description">
+                Compara el impacto económico de la merma entre turnos operativos.
+            </p>
+            <div class="chart-container">
+                <canvas id="chartTurnos"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <section id="rechazos" class="section-title">
+        <h2>Rechazos críticos</h2>
+        <p>
+            Se muestran los lotes rechazados con mayor impacto económico. Esta tabla permite priorizar
+            acciones correctivas sobre los casos más costosos.
+        </p>
+    </section>
+
+    <section class="table-section">
+        <h2>Top 10 rechazos con mayor impacto económico</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Producto</th>
+                        <th>Área</th>
+                        <th>Turno</th>
+                        <th>Lote</th>
+                        <th>Merma</th>
+                        <th>Pérdida</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in tabla_rechazos %}
+                    <tr>
+                        <td>{{ item.id_registro }}</td>
+                        <td>{{ item.producto }}</td>
+                        <td>{{ item.area }}</td>
+                        <td>{{ item.turno }}</td>
+                        <td>{{ item.lote }}</td>
+                        <td>{{ item.kg_merma }}</td>
+                        <td>{{ item.perdida }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section id="mejora" class="recommendation">
+        <h2>Escenario de mejora</h2>
+        <p>
+            Se proyecta el ahorro económico estimado si la organización logra reducir la merma total
+            en diferentes niveles de mejora operativa.
+        </p>
+
+        <div class="saving-grid">
+            <div>
+                <span>Reducción 10%</span>
+                <strong>{{ ahorro_10 }}</strong>
+            </div>
+            <div>
+                <span>Reducción 15%</span>
+                <strong>{{ ahorro_15 }}</strong>
+            </div>
+            <div>
+                <span>Reducción 20%</span>
+                <strong>{{ ahorro_20 }}</strong>
+            </div>
+        </div>
+
+        <h2>Propuesta de mejora</h2>
+        <p>
+            Se recomienda implementar un control preventivo para lotes con merma superior al 8%,
+            priorizando productos de alto valor económico. Esta medida permitiría reducir pérdidas,
+            mejorar la trazabilidad del proceso y fortalecer la toma de decisiones operativas.
+        </p>
+
+        <div class="rule-box">
+            <strong>Regla de negocio propuesta:</strong>
+            <span>
+                Todo lote con porcentaje de merma mayor al 8% será clasificado como riesgo alto
+                y deberá pasar por inspección preventiva antes de despacho o venta.
+            </span>
+        </div>
+    </section>
+
+    <section id="arquitectura" class="architecture-card">
+        <h2>Arquitectura del proyecto</h2>
+        <p>
+            El proyecto simula un flujo real de inteligencia de negocios, donde un reporte operativo
+            exportado desde un ERP es procesado, transformado y visualizado mediante herramientas de análisis.
+        </p>
+
+        <div class="architecture-flow">
+            <div>Excel ERP simulado</div>
+            <span>→</span>
+            <div>Python openpyxl</div>
+            <span>→</span>
+            <div>JSON</div>
+            <span>→</span>
+            <div>MongoDB</div>
+            <span>→</span>
+            <div>Flask Dashboard</div>
+        </div>
+
+        <p class="data-source">
+            Fuente de datos: reporte ERP simulado en Excel, procesado con Python y almacenado en MongoDB.
+        </p>
+    </section>
+
+    <script id="dashboard-data" type="application/json">
+    {
+        "productosLabels": {{ productos_labels | tojson }},
+        "productosValores": {{ productos_valores | tojson }},
+        "areasLabels": {{ areas_labels | tojson }},
+        "areasValores": {{ areas_valores | tojson }},
+        "calidadLabels": {{ calidad_labels | tojson }},
+        "calidadValores": {{ calidad_valores | tojson }},
+        "turnosLabels": {{ turnos_labels | tojson }},
+        "turnosValores": {{ turnos_valores | tojson }}
+    }
+    </script>
+
+    <script>
+        const dashboardData = JSON.parse(document.getElementById("dashboard-data").textContent);
+
+        const productosLabels = dashboardData.productosLabels;
+        const productosValores = dashboardData.productosValores;
+
+        const areasLabels = dashboardData.areasLabels;
+        const areasValores = dashboardData.areasValores;
+
+        const calidadLabels = dashboardData.calidadLabels;
+        const calidadValores = dashboardData.calidadValores;
+
+        const turnosLabels = dashboardData.turnosLabels;
+        const turnosValores = dashboardData.turnosValores;
+
+        function formatoSoles(valor) {
+            return "S/ " + Number(valor).toLocaleString("es-PE", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        const opcionesBarras = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return formatoSoles(context.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return "S/ " + Number(value).toLocaleString("es-PE");
+                        }
+                    }
+                }
+            }
+        };
+
+        new Chart(document.getElementById("chartProductos"), {
+            type: "bar",
+            data: {
+                labels: productosLabels,
+                datasets: [{
+                    label: "Pérdida económica",
+                    data: productosValores,
+                    borderWidth: 1
+                }]
+            },
+            options: opcionesBarras
+        });
+
+        new Chart(document.getElementById("chartAreas"), {
+            type: "bar",
+            data: {
+                labels: areasLabels,
+                datasets: [{
+                    label: "Pérdida económica",
+                    data: areasValores,
+                    borderWidth: 1
+                }]
+            },
+            options: opcionesBarras
+        });
+
+        new Chart(document.getElementById("chartCalidad"), {
+            type: "doughnut",
+            data: {
+                labels: calidadLabels,
+                datasets: [{
+                    label: "Registros",
+                    data: calidadValores,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ": " + context.raw + " registros";
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        new Chart(document.getElementById("chartTurnos"), {
+            type: "bar",
+            data: {
+                labels: turnosLabels,
+                datasets: [{
+                    label: "Pérdida económica",
+                    data: turnosValores,
+                    borderWidth: 1
+                }]
+            },
+            options: opcionesBarras
+        });
+    </script>
+
+</body>
+</html>
